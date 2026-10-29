@@ -292,6 +292,14 @@ LegalityAnalysis::canVectorizeLSV(BndlRef<Instruction *> Bndl) {
   if (!LegalityAnalysis::areUnique(Bndl))
     return createLegalityResult<Pack>(ResultReason::RepeatedInstrs);
 
+  // Check if the loads or stores access consecutive memory.
+  bool Consecutive =
+      isa<StoreInst>(Bndl[0])
+          ? VecUtils::areConsecutive<StoreInst, Instruction>(Bndl, SE, DL)
+          : VecUtils::areConsecutive<LoadInst, Instruction>(Bndl, SE, DL);
+  if (!Consecutive)
+    return createLegalityResult<Pack>(ResultReason::NotConsecutive);
+
   // Check if the target supports the alignment of the generated vector.
   if (!isAlignmentSupported(Bndl))
     return createLegalityResult<Pack>(ResultReason::AlignmentNotSupported);
